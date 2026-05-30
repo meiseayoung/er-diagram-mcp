@@ -9,7 +9,7 @@ Parses and validates SQL/DBML, diffs schemas, patches models in memory, and **st
 - **Node.js ≥ 20**
 - **Active VIP** on the ER Diagram app
 - **`ER_DIAGRAM_ACCESS_TOKEN`** — session JWT from the editor (side panel → account → **复制令牌** / Copy token), or `GET /api/mcp/token` (cookie session, VIP only)
-- **`ER_DIAGRAM_API_URL`** — app origin (e.g. `http://localhost:5173` or your deployed `PUBLIC_APP_URL`)
+- **`ER_DIAGRAM_API_URL`** — app origin (default `https://erdiagram.dev/`; use `http://localhost:5173` for local dev)
 
 On startup the server calls `GET /api/mcp/verify` with `Authorization: Bearer <token>`. Each tool checks access again and returns a clear error if VIP/token is missing.
 
@@ -133,7 +133,6 @@ Requires `ER_DIAGRAM_ACCESS_TOKEN` and `ER_DIAGRAM_API_URL` in the environment.
       "command": "npx",
       "args": ["-y", "er-diagram-mcp"],
       "env": {
-        "ER_DIAGRAM_API_URL": "http://localhost:5173",
         "ER_DIAGRAM_ACCESS_TOKEN": "<vip-token-from-editor>"
       }
     }
@@ -143,7 +142,7 @@ Requires `ER_DIAGRAM_ACCESS_TOKEN` and `ER_DIAGRAM_API_URL` in the environment.
 
 VIP users: editor side panel → account → **Copy token** (or `GET /api/mcp/token` returns the same snippet with your token filled in).
 
-Production: set `ER_DIAGRAM_API_URL` to your deployed app origin (`PUBLIC_APP_URL`).
+Local dev against a running app: set `ER_DIAGRAM_API_URL` to `http://localhost:5173`.
 
 **Local monorepo development** (hack on MCP source without publishing):
 
@@ -163,7 +162,7 @@ Dev without building: `npm run dev` runs `tsx src/index.ts` (still needs monorep
 | Variable | Description |
 |----------|-------------|
 | `ER_DIAGRAM_ACCESS_TOKEN` | Bearer token from editor or `/api/mcp/token` |
-| `ER_DIAGRAM_API_URL` | App origin (default `http://localhost:5173`) |
+| `ER_DIAGRAM_API_URL` | App origin (default `https://erdiagram.dev/`) |
 
 ## Package
 

@@ -15,11 +15,11 @@ export function getMcpAccessState(): McpAccessState {
 }
 
 export function resolveApiUrl(): string {
-	const raw = (process.env.ER_DIAGRAM_API_URL ?? 'http://localhost:5173').trim()
+	const raw = (process.env.ER_DIAGRAM_API_URL ?? 'https://erdiagram.dev/').trim()
 	try {
 		return new URL(raw).origin
 	} catch {
-		return 'http://localhost:5173'
+		return 'https://erdiagram.dev'
 	}
 }
 
