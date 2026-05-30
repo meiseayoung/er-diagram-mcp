@@ -124,14 +124,14 @@ Requires `ER_DIAGRAM_ACCESS_TOKEN` and `ER_DIAGRAM_API_URL` in the environment.
 
 ## IDE configuration
 
-**Cursor** (monorepo `.cursor/mcp.json`):
+**Recommended** ([npm package](https://www.npmjs.com/package/er-diagram-mcp)) — copy `.cursor/mcp.json.example` to `.cursor/mcp.json` in your project:
 
 ```json
 {
   "mcpServers": {
     "er-diagram": {
-      "command": "node",
-      "args": ["packages/er-diagram-mcp/dist/index.js"],
+      "command": "npx",
+      "args": ["-y", "er-diagram-mcp"],
       "env": {
         "ER_DIAGRAM_API_URL": "http://localhost:5173",
         "ER_DIAGRAM_ACCESS_TOKEN": "<vip-token-from-editor>"
@@ -141,26 +141,20 @@ Requires `ER_DIAGRAM_ACCESS_TOKEN` and `ER_DIAGRAM_API_URL` in the environment.
 }
 ```
 
-**npm package** (recommended):
+VIP users: editor side panel → account → **Copy token** (or `GET /api/mcp/token` returns the same snippet with your token filled in).
+
+Production: set `ER_DIAGRAM_API_URL` to your deployed app origin (`PUBLIC_APP_URL`).
+
+**Local monorepo development** (hack on MCP source without publishing):
 
 ```json
 {
-  "command": "npx",
-  "args": ["-y", "er-diagram-mcp"],
-  "env": {
-    "ER_DIAGRAM_API_URL": "https://your-app.example.com",
-    "ER_DIAGRAM_ACCESS_TOKEN": "<vip-token>"
-  }
+  "command": "node",
+  "args": ["packages/er-diagram-mcp/dist/index.js"]
 }
 ```
 
-**Local monorepo path** (development):
-
-```json
-"args": ["packages/er-diagram-mcp/dist/index.js"]
-```
-
-Production: set `ER_DIAGRAM_API_URL` to your deployed app origin.
+Requires `npm run mcp:build` in the er-diagram repo root.
 
 Dev without building: `npm run dev` runs `tsx src/index.ts` (still needs monorepo `$er` sources on disk).
 

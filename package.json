@@ -24,7 +24,7 @@
     "ddl"
   ],
   "bin": {
-    "er-diagram-mcp": "./dist/index.js"
+    "er-diagram-mcp": "dist/index.js"
   },
   "files": [
     "dist",
