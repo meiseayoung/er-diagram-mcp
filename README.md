@@ -1,37 +1,72 @@
-# ER Diagram MCP Server (local)
+# ER Diagram MCP Server
 
-stdio MCP server for AI-assisted database schema design. **VIP-only** — the server verifies your subscription via `GET /api/mcp/verify` using a session token from the editor.
+stdio MCP server for AI-assisted database schema design. Works with the **ER Diagram** web app/editor (VIP subscription required).
 
-Reuses the project's SQL/DBML parsers, diff engine, and validation logic — no canvas/auto-layout tools.
+Parses and validates SQL/DBML, diffs schemas, patches models in memory, and **stages** results for manual sync in the editor — it does not auto-write the canvas or run auto-layout.
+
+## Requirements
+
+- **Node.js ≥ 20**
+- **Active VIP** on the ER Diagram app
+- **`ER_DIAGRAM_ACCESS_TOKEN`** — session JWT from the editor (side panel → account → **复制令牌** / Copy token), or `GET /api/mcp/token` (cookie session, VIP only)
+- **`ER_DIAGRAM_API_URL`** — app origin (e.g. `http://localhost:5173` or your deployed `PUBLIC_APP_URL`)
+
+On startup the server calls `GET /api/mcp/verify` with `Authorization: Bearer <token>`. Each tool checks access again and returns a clear error if VIP/token is missing.
+
+## Build note (monorepo)
+
+This package imports shared logic from the parent app via the `$er` alias (`src/lib/er-diagram` in the main repo). **Build from the monorepo root:**
+
+```bash
+# from er-diagram repo root
+npm run mcp:build
+```
+
+Or from this directory after the parent tree is present:
+
+```bash
+cd packages/er-diagram-mcp
+npm install
+npm run build   # bundles dist/index.js
+```
+
+A standalone clone of *only* this repository cannot build until core parsers are vendored or published as a dependency.
 
 ## Tools
 
 | Tool | Description |
 |------|-------------|
-| `get_schema` | Current session `ERDiagramData` |
-| `set_schema` | Replace session schema (JSON) |
-| `import_sql` / `import_dbml` | Parse into session |
-| `export_sql` / `export_dbml` | Generate from session or JSON |
-| `patch_schema` | Incremental edits (see below) |
-| `validate_schema` | Structural validation + lint |
-| `list_tables` / `get_table` | Inspect tables |
-| `trace_relations` | FK graph traversal |
-| `diff_schemas` | Compare two schemas |
-| `normalize_from_ddl` | Parse SQL, grid positions, sync FK flags, validate |
-| `stage_for_sync` | Stage schema for manual editor sync (no auto canvas write) |
-| `push_to_canvas` | Deprecated alias of `stage_for_sync` |
+| `get_schema` | Current session `ERDiagramData` JSON |
+| `set_schema` | Replace session schema (`schema` JSON string) |
+| `import_sql` | Parse SQL DDL into session (`dialect`: `mysql` \| `postgresql`, default `mysql`) |
+| `import_dbml` | Parse DBML into session |
+| `export_sql` | Generate SQL from session or optional `schema` JSON |
+| `export_dbml` | Generate DBML from session or optional `schema` JSON |
+| `patch_schema` | Incremental edits (`operations` array — see below) |
+| `validate_schema` | Structural validation **and** lint (`schema` optional) |
+| `list_tables` | Table ids/names, column and relation counts |
+| `get_table` | One table by `tableId` or `tableName`, with relations |
+| `trace_relations` | FK graph walk (`depth` 1–5, `direction`: `both` \| `outgoing` \| `incoming`) |
+| `diff_schemas` | Compare `from_schema` → `to_schema` |
+| `normalize_from_ddl` | Parse SQL, grid layout, sync FK flags, validate + lint; updates session |
+| `stage_for_sync` | `POST /api/mcp/stage` with session schema — user syncs in editor |
+| `push_to_canvas` | **Deprecated** — alias of `stage_for_sync` |
+
+Typical flow: `import_sql` or `set_schema` → `patch_schema` → `validate_schema` → `export_sql` → `stage_for_sync`.
 
 ## Prompts
 
-- `design_schema` — requirements → model → validate → export SQL
-- `review_migration` — diff two schemas and assess migration risk
-- `normalize_from_ddl` — import and clean SQL DDL
+| Prompt | Purpose |
+|--------|---------|
+| `design_schema` | Requirements → model → validate → export SQL → stage |
+| `review_migration` | `diff_schemas` + migration risk review |
+| `normalize_from_ddl` | Clean imported SQL via `normalize_from_ddl` tool |
 
 ## Resource
 
-- `er://schema/current` — session schema JSON
+- `er://schema/current` — in-memory session schema (`application/json`)
 
-## Patch operations
+## Patch operations (`patch_schema`)
 
 ```json
 { "op": "add_table", "table": { "id": "users", "name": "users", "x": 0, "y": 0, "columns": [] } }
@@ -45,36 +80,37 @@ Reuses the project's SQL/DBML parsers, diff engine, and validation logic — no 
 { "op": "update_relation", "relationId": "r1", "patch": { "type": "1:1" } }
 ```
 
-## Build & run
+## Editor sync (stage → apply)
 
-```bash
-cd packages/er-diagram-mcp
-npm install
-npm run build
-```
+MCP never applies to the canvas by itself.
 
-Dev (no build):
-
-```bash
-npm run dev
-```
-
-## VIP access token
-
-1. Sign in with an **active VIP** account and open the editor.
-2. In the side panel account area, use **Copy token**.
-3. Paste the token into your IDE’s MCP server env as `ER_DIAGRAM_ACCESS_TOKEN`.
-
-API (for automation): `GET /api/mcp/token` (cookie session, VIP only).  
-Stage from MCP: `POST /api/mcp/stage` with bearer token and `{ "schema": <ERDiagramData>, "patches"?: [...] }`.
-
-Apply from editor (cookie session): `POST /api/mcp/apply` with `{ "mode": "replace" | "patch" }` — user must choose in the side panel. `patch` = append to canvas (same as SQL import Append).
+1. **`stage_for_sync`** (or CLI below) → `POST /api/mcp/stage` with `{ "schema": <ERDiagramData> }`.
+2. In the editor side panel: **Preview** (optional), then **Replace** (overwrite) or **Append** (same semantics as SQL import Append).
+3. Editor calls `POST /api/mcp/apply` with `{ "mode": "replace" | "patch", "diagramId"?, "resolutions"? }` (cookie session).  
+   - API mode `patch` = UI **Append**.  
+   - Append with table name conflicts → same resolution UI as SQL import (`resolutions`).
 
 `POST /api/mcp/push` only stages (legacy); direct push with `mode` is rejected.
 
+`GET /api/mcp/staged?diagramId=...` — preview staged tables before apply.
+
+## CLI (stage without IDE)
+
+After build:
+
+```bash
+# optional: load .sql into session, then stage
+node dist/index.js --push path/to/schema.sql
+
+# or from monorepo root
+npm run mcp:stage -- path/to/schema.sql
+```
+
+Requires `ER_DIAGRAM_ACCESS_TOKEN` and `ER_DIAGRAM_API_URL` in the environment.
+
 ## IDE configuration
 
-Example for **Cursor** (project `.cursor/mcp.json`; other IDEs use their own MCP config path):
+**Cursor** (monorepo `.cursor/mcp.json`):
 
 ```json
 {
@@ -84,13 +120,32 @@ Example for **Cursor** (project `.cursor/mcp.json`; other IDEs use their own MCP
       "args": ["packages/er-diagram-mcp/dist/index.js"],
       "env": {
         "ER_DIAGRAM_API_URL": "http://localhost:5173",
-        "ER_DIAGRAM_ACCESS_TOKEN": "<paste-vip-token>"
+        "ER_DIAGRAM_ACCESS_TOKEN": "<vip-token-from-editor>"
       }
     }
   }
 }
 ```
 
-Production: set `ER_DIAGRAM_API_URL` to your deployed app origin (same as `PUBLIC_APP_URL`).
+**Standalone package path** (after `npm run build` in this repo):
 
-From repo root: `npm run mcp:build` then `npm run mcp` (requires env vars above).
+```json
+"args": ["/absolute/path/to/er-diagram-mcp/dist/index.js"]
+```
+
+Production: set `ER_DIAGRAM_API_URL` to your deployed app origin.
+
+Dev without building: `npm run dev` runs `tsx src/index.ts` (still needs monorepo `$er` sources on disk).
+
+## Environment variables
+
+| Variable | Description |
+|----------|-------------|
+| `ER_DIAGRAM_ACCESS_TOKEN` | Bearer token from editor or `/api/mcp/token` |
+| `ER_DIAGRAM_API_URL` | App origin (default `http://localhost:5173`) |
+
+## Package
+
+- npm name: `@er-diagram/mcp-server`
+- bin: `er-diagram-mcp` → `dist/index.js`
+- MCP server id: `er-diagram` (version `0.1.0`)
