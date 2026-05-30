@@ -1,0 +1,31 @@
+{
+  "name": "@er-diagram/mcp-server",
+  "version": "0.1.0",
+  "description": "Local MCP server for ER Diagram schema design (SQL/DBML, validate, diff)",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "er-diagram-mcp": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsx src/index.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "node-sql-parser": "^5.3.13",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "~5.7.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
