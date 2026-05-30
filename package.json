@@ -1,19 +1,42 @@
 {
-  "name": "@er-diagram/mcp-server",
+  "name": "er-diagram-mcp",
   "version": "0.1.0",
-  "description": "Local MCP server for ER Diagram schema design (SQL/DBML, validate, diff)",
+  "description": "MCP server for ER Diagram — SQL/DBML schema design, validate, diff, and editor sync (VIP)",
   "type": "module",
   "license": "MIT",
+  "author": "meiseayoung",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/meiseayoung/er-diagram-mcp.git"
+  },
+  "homepage": "https://github.com/meiseayoung/er-diagram-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/meiseayoung/er-diagram-mcp/issues"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "er-diagram",
+    "database",
+    "schema",
+    "sql",
+    "dbml",
+    "ddl"
+  ],
   "bin": {
     "er-diagram-mcp": "./dist/index.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
-    "build": "tsup",
+    "sync:core": "node scripts/sync-er-core.mjs",
+    "build": "npm run sync:core && tsup",
     "dev": "tsx src/index.ts",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",

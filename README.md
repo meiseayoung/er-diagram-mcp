@@ -13,24 +13,38 @@ Parses and validates SQL/DBML, diffs schemas, patches models in memory, and **st
 
 On startup the server calls `GET /api/mcp/verify` with `Authorization: Bearer <token>`. Each tool checks access again and returns a clear error if VIP/token is missing.
 
-## Build note (monorepo)
+## Install (npm)
 
-This package imports shared logic from the parent app via the `$er` alias (`src/lib/er-diagram` in the main repo). **Build from the monorepo root:**
+```bash
+npm install -g er-diagram-mcp
+# or use npx in MCP config: npx er-diagram-mcp
+```
+
+Published tarball includes prebuilt `dist/` (ER Diagram core is bundled at publish time).
+
+## Build (from source)
+
+Requires the parent **er-diagram** monorepo (`src/lib/er-diagram`). `npm run build` syncs core into `vendor/` then bundles `dist/index.js`.
 
 ```bash
 # from er-diagram repo root
 npm run mcp:build
+
+# or
+cd packages/er-diagram-mcp
+npm install
+npm run build
 ```
 
-Or from this directory after the parent tree is present:
+## Publish to npm
+
+From the monorepo (after `npm login`):
 
 ```bash
 cd packages/er-diagram-mcp
-npm install
-npm run build   # bundles dist/index.js
+npm run build
+npm publish
 ```
-
-A standalone clone of *only* this repository cannot build until core parsers are vendored or published as a dependency.
 
 ## Tools
 
@@ -127,10 +141,23 @@ Requires `ER_DIAGRAM_ACCESS_TOKEN` and `ER_DIAGRAM_API_URL` in the environment.
 }
 ```
 
-**Standalone package path** (after `npm run build` in this repo):
+**npm package** (recommended):
 
 ```json
-"args": ["/absolute/path/to/er-diagram-mcp/dist/index.js"]
+{
+  "command": "npx",
+  "args": ["-y", "er-diagram-mcp"],
+  "env": {
+    "ER_DIAGRAM_API_URL": "https://your-app.example.com",
+    "ER_DIAGRAM_ACCESS_TOKEN": "<vip-token>"
+  }
+}
+```
+
+**Local monorepo path** (development):
+
+```json
+"args": ["packages/er-diagram-mcp/dist/index.js"]
 ```
 
 Production: set `ER_DIAGRAM_API_URL` to your deployed app origin.
@@ -146,6 +173,6 @@ Dev without building: `npm run dev` runs `tsx src/index.ts` (still needs monorep
 
 ## Package
 
-- npm name: `@er-diagram/mcp-server`
+- npm: [`er-diagram-mcp`](https://www.npmjs.com/package/er-diagram-mcp)
 - bin: `er-diagram-mcp` → `dist/index.js`
 - MCP server id: `er-diagram` (version `0.1.0`)

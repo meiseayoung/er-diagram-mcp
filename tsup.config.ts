@@ -1,7 +1,7 @@
 import { resolve } from 'node:path'
 import { defineConfig } from 'tsup'
 
-const erDiagramRoot = resolve(import.meta.dirname, '../../src/lib/er-diagram')
+const erDiagramRoot = resolve(import.meta.dirname, 'vendor/er-diagram')
 
 export default defineConfig({
   entry: ['src/index.ts'],
