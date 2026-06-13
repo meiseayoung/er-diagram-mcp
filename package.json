@@ -1,6 +1,6 @@
 {
   "name": "er-diagram-mcp",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "MCP server for ER Diagram — SQL/DBML schema design, validate, diff, and editor sync (VIP)",
   "type": "module",
   "license": "MIT",
