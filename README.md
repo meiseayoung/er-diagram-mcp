@@ -8,8 +8,8 @@ Parses and validates SQL/DBML, diffs schemas, patches models in memory, and **st
 
 - **Node.js ≥ 20**
 - **Active VIP** on the ER Diagram app
-- **`ER_DIAGRAM_ACCESS_TOKEN`** — session JWT from the editor (side panel → account → **复制令牌** / Copy token), or `GET /api/mcp/token` (cookie session, VIP only)
-- **`ER_DIAGRAM_API_URL`** — app origin (default `https://erdiagram.dev/`; use `http://localhost:5173` for local dev)
+- **`ER_DIAGRAM_ACCESS_TOKEN`** — session JWT from the editor (side panel → account → **Copy MCP config**), or `GET /api/mcp/token` (cookie session, VIP only)
+- **`ER_DIAGRAM_API_URL`** — optional; defaults to `https://erdiagram.dev/` (set only for local dev, e.g. `http://localhost:5173`)
 
 On startup the server calls `GET /api/mcp/verify` with `Authorization: Bearer <token>`. Each tool checks access again and returns a clear error if VIP/token is missing.
 
@@ -56,6 +56,8 @@ npm publish
 | `import_dbml` | Parse DBML into session |
 | `export_sql` | Generate SQL from session or optional `schema` JSON |
 | `export_dbml` | Generate DBML from session or optional `schema` JSON |
+| `export_dictionary` | Data dictionary docs (`format`: `markdown` \| `json` \| `csv` \| `html`, default `markdown`) |
+| `generate_mock_data` | Sample rows respecting FKs (`rows` 1–1000, `format`: `sql` \| `json`, `dialect`, `seed`, `tables`) |
 | `patch_schema` | Incremental edits (`operations` array — see below) |
 | `validate_schema` | Structural validation **and** lint (`schema` optional) |
 | `list_tables` | Table ids/names, column and relation counts |
@@ -120,7 +122,7 @@ node dist/index.js --push path/to/schema.sql
 npm run mcp:stage -- path/to/schema.sql
 ```
 
-Requires `ER_DIAGRAM_ACCESS_TOKEN` and `ER_DIAGRAM_API_URL` in the environment.
+Requires `ER_DIAGRAM_ACCESS_TOKEN` in the environment.
 
 ## IDE configuration
 
@@ -140,9 +142,9 @@ Requires `ER_DIAGRAM_ACCESS_TOKEN` and `ER_DIAGRAM_API_URL` in the environment.
 }
 ```
 
-VIP users: editor side panel → account → **Copy token** (or `GET /api/mcp/token` returns the same snippet with your token filled in).
+VIP users: editor side panel → account → **Copy MCP config** (copies a ready-to-paste `mcpServers` JSON snippet with token filled in; `GET /api/mcp/token` returns the same in `mcpConfigSnippet`).
 
-Local dev against a running app: set `ER_DIAGRAM_API_URL` to `http://localhost:5173`.
+Local dev against a running app: add `"ER_DIAGRAM_API_URL": "http://localhost:5173"` to `env` manually (not included in the copied snippet).
 
 **Local monorepo development** (hack on MCP source without publishing):
 
@@ -162,7 +164,7 @@ Dev without building: `npm run dev` runs `tsx src/index.ts` (still needs monorep
 | Variable | Description |
 |----------|-------------|
 | `ER_DIAGRAM_ACCESS_TOKEN` | Bearer token from editor or `/api/mcp/token` |
-| `ER_DIAGRAM_API_URL` | App origin (default `https://erdiagram.dev/`) |
+| `ER_DIAGRAM_API_URL` | Optional app origin (default `https://erdiagram.dev/`) |
 
 ## Package
 

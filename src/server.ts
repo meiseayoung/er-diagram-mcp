@@ -8,8 +8,10 @@ import type { SqlDialect } from '$er/parsers/sqlParseShared.js'
 
 import { assertMcpAccess } from './access.js'
 import { diffSchemas, describeDiffChanges } from './diff.js'
+import { renderDataDictionary } from './dictionary.js'
 import { jsonText, parseSchemaJson, toolText } from './format.js'
 import { lintSchema } from './lint.js'
+import { generateMockData } from './mockData.js'
 import { normalizeFromDdl } from './normalize.js'
 import { applyPatches, type PatchOperation } from './patch.js'
 import { stageForSync } from './stageForSync.js'
@@ -81,6 +83,7 @@ export function createMcpServer(): McpServer {
         'Local ER Diagram MCP (VIP-only): design and mutate database schemas as ERDiagramData JSON.',
         'Requires ER_DIAGRAM_ACCESS_TOKEN from GET /api/mcp/token (active VIP subscription).',
         'Workflow: set_schema or import_sql → patch_schema → validate_schema → export_sql → stage_for_sync.',
+        'Also: export_dictionary (data dictionary docs) and generate_mock_data (FK-aware sample rows).',
         'Prompts: design_schema, review_migration, normalize_from_ddl.',
         'stage_for_sync stages only. User applies in editor: replace=overwrite, patch=append (SQL import append). Never auto-apply.',
         'Session schema is exposed as resource er://schema/current.'
@@ -223,6 +226,82 @@ export function createMcpServer(): McpServer {
         ? asDiagramData(parseSchemaJson(schema, 'schema'))
         : getSchema()
       return toolText([generateDBML(data)])
+    })
+  )
+
+  server.registerTool(
+    'export_dictionary',
+    {
+      description:
+        'Generate a data dictionary (table/column documentation) from the session schema or optional schema JSON.',
+      inputSchema: {
+        format: z
+          .enum(['markdown', 'json', 'csv', 'html'])
+          .default('markdown')
+          .optional()
+          .describe('Output format (default markdown)'),
+        schema: z
+          .string()
+          .optional()
+          .describe('Optional ERDiagramData JSON; defaults to session schema')
+      }
+    },
+    guardTool(async ({ format, schema }) => {
+      const data = schema
+        ? asDiagramData(parseSchemaJson(schema, 'schema'))
+        : getSchema()
+      return toolText([renderDataDictionary(data, format ?? 'markdown')])
+    })
+  )
+
+  server.registerTool(
+    'generate_mock_data',
+    {
+      description:
+        'Generate realistic mock/sample rows for the session schema (or optional schema JSON). Respects foreign keys for referential integrity.',
+      inputSchema: {
+        rows: z
+          .number()
+          .int()
+          .min(1)
+          .max(1000)
+          .optional()
+          .describe('Rows per table (default 10, max 1000)'),
+        format: z
+          .enum(['sql', 'json'])
+          .optional()
+          .describe('Output format: sql INSERT statements or json (default sql)'),
+        dialect: dialectSchema.optional(),
+        seed: z
+          .number()
+          .int()
+          .optional()
+          .describe('Seed for deterministic output (default 1)'),
+        tables: z
+          .array(z.string())
+          .optional()
+          .describe('Limit to these table names or ids (default all)'),
+        schema: z
+          .string()
+          .optional()
+          .describe('Optional ERDiagramData JSON; defaults to session schema')
+      }
+    },
+    guardTool(async ({ rows, format, dialect, seed, tables, schema }) => {
+      const data = schema
+        ? asDiagramData(parseSchemaJson(schema, 'schema'))
+        : getSchema()
+      const result = generateMockData(data, {
+        rows,
+        format: format ?? 'sql',
+        dialect: (dialect ?? 'mysql') as SqlDialect,
+        seed,
+        tables
+      })
+      return toolText([
+        `Generated ${result.rowsPerTable} row(s) for ${result.tables.length} table(s) [${result.format}].`,
+        result.output || '(no tables to generate)'
+      ])
     })
   )
 
